@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>আমার সংগ্রহ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#d93a3a;--blue:#2f6fdb;--green:#2e9e5b;--pink:#e0589a;--brown:#8b5a3c;--bg:#eef1f4;--ink:#12343b;--muted:#5b6f75;--card:#fff;--accent:#2f6fdb;--line:#d5dde1}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1c20;--ink:#e6eef0;--muted:#8ea4aa;--card:#172a2f;--line:#26414a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hind Siliguri",system-ui,sans-serif;line-height:1.6}
+header{max-width:1100px;margin:0 auto;padding:48px 20px 16px}
+h1{font-size:clamp(2rem,5vw,3.2rem);margin:0 0 6px;line-height:1.15}
+header p{margin:0;color:var(--muted);max-width:52ch}
+nav{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap}
+nav button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 16px;border-radius:99px;cursor:pointer}
+nav button{display:inline-flex;align-items:center;gap:8px}
+nav button::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c,var(--ink))}
+nav button[aria-pressed="true"]{background:var(--c,var(--ink));color:#fff;border-color:var(--c,var(--ink))}
+nav button[aria-pressed="true"]::before{background:#fff}
+.stripe{height:6px;max-width:1100px;margin:0 auto;background:linear-gradient(90deg,var(--red) 0 20%,var(--blue) 20% 40%,var(--green) 40% 60%,var(--pink) 60% 80%,var(--brown) 80%)}
+nav button:focus-visible,.item:focus-visible,.close:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+main{max-width:1100px;margin:0 auto;padding:8px 20px 60px;columns:3 260px;column-gap:16px}
+.item{display:block;break-inside:avoid;margin:0 0 16px;background:var(--card);border:1px solid var(--line);border-top:5px solid var(--c,var(--line));border-radius:10px;overflow:hidden;color:inherit;text-decoration:none;cursor:pointer;width:100%;text-align:left;font:inherit;padding:0}
+.item img{display:block;width:100%;height:auto;background:var(--line);min-height:120px}
+.thumb{position:relative}
+.play{position:absolute;inset:0;display:grid;place-items:center}
+.play span{width:56px;height:56px;border-radius:50%;background:rgba(18,52,59,.82);display:grid;place-items:center}
+.play svg{width:22px;height:22px;fill:#fff;margin-left:3px}
+.aud{aspect-ratio:16/9;background:var(--c)}
+.cap{padding:10px 14px 12px}
+.cap b{display:block;font-weight:500}
+.cap small{color:var(--muted)}
+.link .cap{padding:18px 16px}
+.cap b{color:var(--c,var(--ink))}
+.empty{color:var(--muted);padding:40px 20px;max-width:1100px;margin:auto}
+dialog{border:0;padding:0;border-radius:12px;width:min(920px,94vw);background:#000;overflow:hidden}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+dialog iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+.close{position:absolute;top:8px;right:8px;z-index:2;border:0;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;background:#fff;color:#000}
+</style>
+</head>
+<body>
+<header>
+  <h1>আমার সংগ্রহ</h1>
+  <p>ছবি, ভিডিও ও লেখার লিংক এক জায়গায়। ক্লিক করলে মূল ফাইল খুলবে।</p>
+</header>
+<div class="stripe"></div>
+<nav id="tabs"></nav>
+<main id="grid"></main>
+
+<dialog id="player"><button class="close" aria-label="বন্ধ করুন">×</button><iframe allow="autoplay; fullscreen" allowfullscreen title="ভিডিও"></iframe></dialog>
+
+<script>
+/* ============================================================
+   এই অংশটুকুই শুধু বদলাবেন। প্রতিটি আইটেম একটি { } ব্লক।
+   type  : "image" (ছবি) | "video" (ভিডিও) | "audio" (অডিও) | "link" (পিডিএফ/ডক/অন্য লিংক)
+   url   : গুগল ড্রাইভের শেয়ার লিংক (পুরো লিংক পেস্ট করলেই হবে)
+   cat   : বিভাগের নাম, যেমন "বই", "ভিডিও", "ছবি", "পিডিএফ" (যেকোনো নাম দিতে পারেন,
+           একই নামের আইটেমগুলো একসাথে একটি বিভাগে দেখাবে। না দিলে ধরন অনুযায়ী হবে)
+   title : নাম
+   note  : ছোট বিবরণ (ঐচ্ছিক)
+   cover : শুধু "link" টাইপের জন্য, কভার ছবির ড্রাইভ লিংক (ঐচ্ছিক)
+   ফাইল অবশ্যই "Anyone with the link → Viewer" শেয়ার করা থাকতে হবে।
+   ============================================================ */
+const ITEMS = [
+  { type:"link", cat:"অন্যান্য", title:"poster", note:"ZIP ফাইল, ক্লিক করলে ড্রাইভে খুলবে",
+    url:"https://drive.google.com/file/d/1S9iHRFBqlUc32Gdiib7utj8uKCl0ZU2v/view?usp=drive_link" },
+  { type:"link", cat:"পিডিএফ বই", title:"book", note:"PDF বই, ক্লিক করলে ড্রাইভে খুলবে",
+    url:"https://drive.google.com/file/d/12661LPpCEhvx6O3_YeE_l9fmQhNzND_f/view?usp=drive_link",
+    cover:"https://drive.google.com/file/d/12661LPpCEhvx6O3_YeE_l9fmQhNzND_f/view?usp=drive_link" },
+  { type:"link", cat:"পিডিএফ বই", title:"book", note:"PDF বই, ক্লিক করলে ড্রাইভে খুলবে",
+    url:"https://drive.google.com/file/d/1ghCjSISTxzLvcyMh1S-Plos457H4l8To/view?usp=drive_link",
+    cover:"https://drive.google.com/file/d/1ghCjSISTxzLvcyMh1S-Plos457H4l8To/view?usp=drive_link" }
+];
+/* ============================================================ */
+
+const LABELS = { all:"সব", image:"ছবি", video:"ভিডিও", audio:"অডিও", link:"ফাইল ও লেখা" };
+const CATEGORIES = ["ভিডিও","ছবি","অডিও","পিডিএফ বই"]; // সবসময় এই বাটনগুলো দেখাবে
+const idOf = u => { const m = (u||"").match(/\/d\/([\w-]+)|[?&]id=([\w-]+)/); return m ? (m[1]||m[2]) : ""; };
+const thumb = (u,w=800) => `https://drive.google.com/thumbnail?id=${idOf(u)}&sz=w${w}`;
+const grid = document.getElementById("grid"), tabs = document.getElementById("tabs");
+const player = document.getElementById("player"), frame = player.querySelector("iframe");
+
+function card(it){
+  const el = document.createElement(it.type==="video"||it.type==="audio" ? "button" : "a");
+  el.style.setProperty("--c", colorOf(catOf(it)));
+  el.className = "item " + it.type;
+  const cap = `<div class="cap"><b>${it.title||""}</b>${it.note?`<small>${it.note}</small>`:""}</div>`;
+  if(it.type==="link"){
+    el.href = it.url; el.target = "_blank"; el.rel = "noopener";
+    el.innerHTML = (it.cover?`<img loading="lazy" src="${thumb(it.cover)}" alt="">`:"") + cap;
+  } else if(it.type==="image"){
+    el.href = it.url; el.target = "_blank"; el.rel = "noopener";
+    el.innerHTML = `<img loading="lazy" src="${thumb(it.url)}" alt="${it.title||""}">` + cap;
+  } else if(it.type==="audio"){
+    el.innerHTML = `<div class="thumb aud"><div class="play"><span style="background:var(--ink)"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></span></div></div>` + cap;
+    el.onclick = () => { frame.src = `https://drive.google.com/file/d/${idOf(it.url)}/preview`; player.showModal(); };
+  } else {
+    el.innerHTML = `<div class="thumb"><img loading="lazy" src="${thumb(it.url)}" alt="${it.title||""}"><div class="play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div></div>` + cap;
+    el.onclick = () => { frame.src = `https://drive.google.com/file/d/${idOf(it.url)}/preview`; player.showModal(); };
+  }
+  return el;
+}
+
+const catOf = i => i.cat || LABELS[i.type];
+/* বিভাগ অনুযায়ী রং। নতুন বিভাগ যোগ করলে এখানে রং বসাতে পারেন। */
+const CAT_COLORS = { "ভিডিও":"var(--red)", "ছবি":"var(--blue)", "অডিও":"var(--green)", "পিডিএফ বই":"var(--brown)", "অন্যান্য":"var(--pink)" };
+const SPARE = ["var(--pink)","var(--green)","var(--blue)","var(--red)","var(--brown)"];
+const colorOf = k => CAT_COLORS[k] || SPARE[[...k].length % SPARE.length];
+
+function render(filter){
+  grid.innerHTML = "";
+  const list = ITEMS.filter(i => filter==="all" || catOf(i)===filter);
+  if(!list.length){ const p=document.createElement("p"); p.className="empty"; p.textContent="এই বিভাগে এখনো কিছু নেই।"; grid.appendChild(p); }
+  list.forEach(i => grid.appendChild(card(i)));
+}
+
+["all", ...new Set([...CATEGORIES, ...ITEMS.map(catOf)])].forEach(k => {
+  const b = document.createElement("button");
+  b.textContent = k==="all" ? LABELS.all : k; if(k!=="all") b.style.setProperty("--c", colorOf(k)); b.setAttribute("aria-pressed", k==="all");
+  b.onclick = () => { tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x===b)); render(k); };
+  tabs.appendChild(b);
+});
+render("all");
+
+player.querySelector(".close").onclick = () => player.close();
+player.addEventListener("close", () => frame.src = "");
+player.addEventListener("click", e => { if(e.target===player) player.close(); });
+</script>
+</body>
+</html>
